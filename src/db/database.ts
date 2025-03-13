@@ -34,6 +34,7 @@ const createTables = async () => {
             role_id TEXT,
             nft_id TEXT,
             address TEXT NOT NULL,
+            app_id TEXT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `;
@@ -169,6 +170,7 @@ type Agent = {
     role_id?: string;
     nft_id?: string;
     address: string;
+    app_id?: string;
     created_at?: string;
 };
 
@@ -196,19 +198,19 @@ type PhalaAccount = {
 // Database operations for Agents
 export async function getAgents(): Promise<Agent[]> {
     const query = `
-        SELECT id, role_id, nft_id, address, created_at 
+        SELECT id, role_id, nft_id, address, app_id, created_at 
         FROM agent
     `;
     return await getQuery(query);
 }
 
-export async function createAgent(role_id: string, nft_id: string, address: string): Promise<boolean> {
+export async function createAgent(role_id: string, nft_id: string, address: string, app_id?: string): Promise<boolean> {
     const query = `
-        INSERT INTO agent (role_id, nft_id, address)
-        VALUES (?, ?, ?)
+        INSERT INTO agent (role_id, nft_id, address, app_id)
+        VALUES (?, ?, ?, ?)
     `;
     try {
-        await runQuery(query, [role_id, nft_id, address]);
+        await runQuery(query, [role_id, nft_id, address, app_id]);
         return true;
     } catch (error) {
         console.error('Error creating agent:', error);
