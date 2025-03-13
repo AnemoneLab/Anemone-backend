@@ -34,8 +34,8 @@ export const createAgentHandler = async (req: Request, res: Response) => {
             
             const address = response.data.address;
             
-            // 创建Agent记录
-            const success = await createAgent(role_id, nft_id, address);
+            // 创建Agent记录，添加app_id
+            const success = await createAgent(role_id, nft_id, address, cvm.app_id);
             
             if (!success) {
                 return res.status(500).json({ error: '创建代理时出错' });
