@@ -257,4 +257,58 @@ export const maintainCvmPoolHandler = async (req: Request, res: Response) => {
       message: error.message,
     });
   }
+};
+
+/**
+ * 获取CVM的证明信息
+ * @param req Request - 包含appId参数
+ * @param res Response
+ */
+export const getAttestationHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    // 创建PhalaCloud实例
+    const phalaCloud = new PhalaCloud({
+      apiUrl: "https://phat.phala.network",
+    });
+    
+    try {
+      // 获取CVM证明信息
+      const attestationData = await phalaCloud.getCvmAttestation(appId);
+      
+      res.json({
+        success: true,
+        data: attestationData
+      });
+    } catch (error: any) {
+      console.error(`获取应用 ${appId} 的证明信息失败:`, error);
+      
+      // 如果错误是因为CVM未部署或离线
+      if (error.response && error.response.status === 404) {
+        return res.status(404).json({
+          success: false,
+          message: `无法找到应用 ${appId} 的证明信息，可能CVM未部署或已离线`
+        });
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `获取证明信息失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理证明信息请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
 }; 

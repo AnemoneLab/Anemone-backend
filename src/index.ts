@@ -11,7 +11,8 @@ import {
   deployAgentCvmHandler, 
   getAvailableCvmHandler, 
   getCvmPoolStatusHandler, 
-  maintainCvmPoolHandler 
+  maintainCvmPoolHandler,
+  getAttestationHandler
 } from './controllers/cvmController';
 import {
   updateApiKeyHandler,
@@ -64,6 +65,7 @@ app.post('/deploy-cvm', deployAgentCvmHandler);
 app.get('/cvm/available', getAvailableCvmHandler);
 app.get('/cvm/pool-status', getCvmPoolStatusHandler);
 app.post('/cvm/maintain-pool', maintainCvmPoolHandler);
+app.get('/cvm/attestation/:appId', getAttestationHandler);
 
 // Admin routes
 app.post('/admin/update-api-key', updateApiKeyHandler);
