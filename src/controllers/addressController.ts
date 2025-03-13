@@ -64,6 +64,9 @@ export const createAgentHandler = async (req: Request, res: Response) => {
             return res.status(400).json({ error: '缺少必填字段' });
         }
 
+        // 保存将要传递给createAgent的app_id
+        let app_id: string | undefined;
+
         // 如果提供了cvm_id，则获取对应CVM并标记为使用中
         if (cvm_id) {
             try {
@@ -75,9 +78,11 @@ export const createAgentHandler = async (req: Request, res: Response) => {
                 `, [cvm_id]);
                 
                 if (cvm && cvm.length > 0) {
+                    // 获取app_id
+                    app_id = cvm[0].app_id;
                     // 标记CVM为使用中
                     await markCvmAsInUse(cvm_id, address);
-                    console.log(`CVM ID ${cvm_id} 已标记为使用中，关联地址: ${address}`);
+                    console.log(`CVM ID ${cvm_id} 已标记为使用中，关联地址: ${address}，App ID: ${app_id}`);
                 }
             } catch (error) {
                 console.error('Error marking CVM as in-use:', error);
@@ -86,7 +91,7 @@ export const createAgentHandler = async (req: Request, res: Response) => {
         }
         
         // 创建Agent记录，添加app_id
-        const success = await createAgent(role_id, nft_id, address);
+        const success = await createAgent(role_id, nft_id, address, app_id);
         
         if (!success) {
             return res.status(500).json({ error: '创建代理时出错' });
@@ -98,7 +103,8 @@ export const createAgentHandler = async (req: Request, res: Response) => {
             agent: {
                 role_id,
                 nft_id,
-                address
+                address,
+                app_id
             }
         });
         
