@@ -5,7 +5,7 @@ import express from 'express';
 import cors from 'cors';
 import sqlite3 from 'sqlite3';
 import { initializeDatabase } from './db/database';
-import { createAgentHandler, getAgentsHandler, getNftIdByRoleIdHandler } from './controllers/addressController';
+import { createAgentHandler, getAgentsHandler, getNftIdByRoleIdHandler, generateAgentAddressHandler } from './controllers/addressController';
 import { getSkillsHandler, addSkillHandler, getSkillByIdHandler, deleteSkillHandler } from './controllers/skillController';
 import { 
   deployAgentCvmHandler, 
@@ -51,6 +51,7 @@ const PORT = process.env.PORT || 3000;
 app.post('/create-agent', createAgentHandler);
 app.get('/agents', getAgentsHandler);
 app.get('/agent/nft-id/:role_id', getNftIdByRoleIdHandler);
+app.post('/generate-agent-address', generateAgentAddressHandler);
 
 // Skill routes
 app.get('/skills', getSkillsHandler);
