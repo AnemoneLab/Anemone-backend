@@ -76,6 +76,15 @@ npm start
 - 这个地址会在创建Agent时分配给Agent使用
 - 所有交易由CVM内部的私钥签名，保证了私钥的安全性
 
+### CVM App ID管理
+
+系统将Phala Cloud的App ID贯穿整个生命周期：
+- 部署CVM后，Phala Cloud返回的app_id存储在`phala_accounts`表中
+- 创建Agent时，app_id会从数据库传递到Agent记录中
+- 在链上创建Role对象时，app_id会作为参数传入并存储在链上
+- 这确保了从云部署到链上角色的完整可追踪性
+- app_id字段可用于跨平台集成和问题诊断
+
 ### CVM状态流转
 
 账户有以下状态:
