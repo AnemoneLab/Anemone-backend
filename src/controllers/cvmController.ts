@@ -293,48 +293,14 @@ export const getAttestationHandler = async (req: Request, res: Response) => {
     
     // 创建PhalaCloud实例，使用找到的API key
     const phalaCloud = new PhalaCloud({
-      apiUrl: "https://phat.phala.network",
       apiKey: account.api_key
     });
     
     try {
       // 获取CVM证明信息
       const attestationData = await phalaCloud.getCvmAttestation(appId);
-      
-      // 验证返回数据是否为有效的证明信息对象
-      if (typeof attestationData === 'string') {
-        console.error(`获取应用 ${appId} 的证明信息返回了非预期的字符串:`, (attestationData as string).substring(0, 200) + '...');
-        return res.status(500).json({
-          success: false, 
-          message: '获取证明信息失败: 服务返回了非预期格式的数据'
-        });
-      }
-      
-      // 检查是否为HTML内容（这可能意味着API密钥失效或需要登录）
-      if (typeof attestationData === 'object' && 
-          attestationData !== null && 
-          typeof attestationData.toString === 'function' && 
-          attestationData.toString().includes('<!DOCTYPE html>')) {
-        console.error(`获取应用 ${appId} 的证明信息返回了HTML内容，可能需要登录或API密钥已失效`);
-        return res.status(401).json({
-          success: false,
-          message: '获取证明信息失败: API密钥可能已失效或需要重新登录'
-        });
-      }
-      
-      // 检查返回的对象是否包含必要的attestation字段
-      if (typeof attestationData !== 'object' || 
-          attestationData === null || 
-          !('tcb_info' in attestationData) || 
-          !('app_certificates' in attestationData)) {
-        console.error(`获取应用 ${appId} 的证明信息返回了非预期的对象:`, attestationData);
-        return res.status(500).json({
-          success: false,
-          message: '获取证明信息失败: 返回的数据格式不符合预期'
-        });
-      }
-      
-      console.log(`成功获取应用 ${appId} 的证明信息`);
+
+      console.log(attestationData);
       
       res.json({
         success: true,
@@ -348,14 +314,6 @@ export const getAttestationHandler = async (req: Request, res: Response) => {
         return res.status(404).json({
           success: false,
           message: `无法找到应用 ${appId} 的证明信息，可能CVM未部署或已离线`
-        });
-      }
-      
-      // 如果错误是因为未授权（API密钥无效）
-      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-        return res.status(401).json({
-          success: false,
-          message: `获取证明信息失败: API密钥无效或已过期`
         });
       }
       

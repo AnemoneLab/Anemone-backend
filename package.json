@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@anemonelab/phala-cloud-sdk": "^0.1.1",
+    "@anemonelab/phala-cloud-sdk": "^0.1.2",
     "@anemonelab/sui-sdk": "^1.0.3",
     "@mysten/sui.js": "^0.50.1",
     "@suiet/wallet-kit": "^0.2.20",
