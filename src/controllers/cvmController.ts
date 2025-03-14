@@ -275,9 +275,26 @@ export const getAttestationHandler = async (req: Request, res: Response) => {
       });
     }
     
-    // 创建PhalaCloud实例
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 创建PhalaCloud实例，使用找到的API key
     const phalaCloud = new PhalaCloud({
       apiUrl: "https://phat.phala.network",
+      apiKey: account.api_key
     });
     
     try {
