@@ -885,7 +885,7 @@ export async function monitorDeployment(accountId: number, appId: string, apiKey
 export async function getAgentCvmEndpoint(roleId: string): Promise<string | null> {
     const query = `
         SELECT pa.cvm_endpoint
-        FROM agents a
+        FROM agent a
         JOIN phala_accounts pa ON a.app_id = pa.app_id
         WHERE a.role_id = ? AND pa.cvm_endpoint IS NOT NULL
         LIMIT 1
