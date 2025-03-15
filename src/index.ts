@@ -19,6 +19,7 @@ import {
     listPhalaAccountsHandler,
     createPhalaAccountHandler
 } from './controllers/adminController';
+import { chatHandler } from './controllers/chatController';
 
 // Initialize database
 initializeDatabase().catch(err => {
@@ -63,6 +64,9 @@ app.get('/cvm/attestation/:appId', getAttestationHandler);
 app.post('/admin/update-api-key', updateApiKeyHandler);
 app.get('/admin/phala-accounts', listPhalaAccountsHandler);
 app.post('/admin/phala-accounts', createPhalaAccountHandler);
+
+// Chat route
+app.post('/chat', chatHandler);
 
 app.listen(PORT, () => {
     console.log(`服务器运行在端口 ${PORT}`);
