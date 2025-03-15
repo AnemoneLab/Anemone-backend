@@ -875,4 +875,27 @@ export async function monitorDeployment(accountId: number, appId: string, apiKey
             console.error(`重置出错账户状态时发生错误:`, updateError);
         }
     }
+}
+
+/**
+ * 根据roleId获取对应的CVM端点
+ * @param roleId 角色ID
+ * @returns CVM端点或null
+ */
+export async function getAgentCvmEndpoint(roleId: string): Promise<string | null> {
+    const query = `
+        SELECT pa.cvm_endpoint
+        FROM agents a
+        JOIN phala_accounts pa ON a.app_id = pa.app_id
+        WHERE a.role_id = ? AND pa.cvm_endpoint IS NOT NULL
+        LIMIT 1
+    `;
+
+    try {
+        const rows = await getQuery(query, [roleId]);
+        return rows.length > 0 ? rows[0].cvm_endpoint : null;
+    } catch (error) {
+        console.error('Error fetching CVM endpoint for agent:', error);
+        return null;
+    }
 } 
