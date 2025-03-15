@@ -16,7 +16,9 @@ import {
     getCvmStatsHandler,
     getCvmCompositionHandler,
     startCvmHandler,
-    stopCvmHandler
+    stopCvmHandler,
+    getCvmVersionsHandler,
+    updateCvmComposeHandler
 } from './controllers/cvmController';
 import {
     updateApiKeyHandler,
@@ -67,6 +69,8 @@ app.get('/cvm/stats/:appId', getCvmStatsHandler);
 app.get('/cvm/composition/:appId', getCvmCompositionHandler);
 app.post('/cvm/start/:appId', startCvmHandler);
 app.post('/cvm/stop/:appId', stopCvmHandler);
+app.get('/cvm/versions', getCvmVersionsHandler);
+app.post('/cvm/update-compose/:appId', updateCvmComposeHandler);
 
 // Admin routes
 app.post('/admin/update-api-key', updateApiKeyHandler);

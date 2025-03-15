@@ -53,8 +53,64 @@ export const deployAgentCvmHandler = async (req: Request, res: Response) => {
         apiKey: phalaAccount.api_key,
       });
       
-      // 找到docker-compose文件
-      const composePath = path.resolve(__dirname, '../../src/docker-compose/agent-cvm.yml');
+      // 获取要使用的Docker Compose文件路径
+      let composePath: string;
+      
+      // 如果请求中指定了版本号，则使用指定版本
+      if (req.body.version) {
+        const requestedVersion = req.body.version;
+        composePath = path.resolve(__dirname, `../../src/docker-compose/agent-cvm-v${requestedVersion}.yml`);
+        
+        if (!fs.existsSync(composePath)) {
+          return res.status(400).json({
+            success: false,
+            message: `指定的版本 ${requestedVersion} 不存在`
+          });
+        }
+      } else {
+        // 否则获取最新版本
+        const composeDirPath = path.resolve(__dirname, '../../src/docker-compose');
+        const files = fs.readdirSync(composeDirPath);
+        
+        // 过滤出agent-cvm的YAML文件并提取版本号
+        const versionPattern = /agent-cvm-v(\d+\.\d+\.\d+)\.yml/;
+        const versions = files
+          .filter((file: string) => versionPattern.test(file))
+          .map((file: string) => {
+            const match = file.match(versionPattern);
+            const version = match ? match[1] : '0.0.0';
+            return {
+              version,
+              file,
+              path: path.join(composeDirPath, file)
+            };
+          });
+        
+        // 按版本号降序排序（较新的版本在前）
+        versions.sort((a: any, b: any) => {
+          const aVersion = a.version.split('.').map(Number);
+          const bVersion = b.version.split('.').map(Number);
+          
+          for (let i = 0; i < 3; i++) {
+            if (aVersion[i] !== bVersion[i]) {
+              return bVersion[i] - aVersion[i]; // 降序
+            }
+          }
+          
+          return 0;
+        });
+        
+        // 使用最新版本
+        if (versions.length === 0) {
+          return res.status(500).json({
+            success: false,
+            message: '找不到可用的Docker Compose文件'
+          });
+        }
+        
+        composePath = versions[0].path;
+        console.log(`使用最新版本的Docker Compose文件: ${versions[0].file}`);
+      }
       
       if (!fs.existsSync(composePath)) {
         return res.status(500).json({
@@ -634,6 +690,169 @@ export const stopCvmHandler = async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('处理停止CVM请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
+};
+
+/**
+ * 获取所有可用的CVM版本
+ * @param req Request
+ * @param res Response
+ */
+export const getCvmVersionsHandler = async (req: Request, res: Response) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // 获取docker-compose目录路径
+    const composeDirPath = path.resolve(__dirname, '../../src/docker-compose');
+    
+    // 读取目录中的所有文件
+    const files = fs.readdirSync(composeDirPath);
+    
+    // 过滤出agent-cvm的YAML文件并提取版本号
+    const versionPattern = /agent-cvm-v(\d+\.\d+\.\d+)\.yml/;
+    const versions = files
+      .filter(file => versionPattern.test(file))
+      .map(file => {
+        const match = file.match(versionPattern);
+        const version = match ? match[1] : '0.0.0';
+        return {
+          version,
+          file,
+          path: path.join(composeDirPath, file)
+        };
+      });
+    
+    // 按版本号降序排序（较新的版本在前）
+    versions.sort((a, b) => {
+      const aVersion = a.version.split('.').map(Number);
+      const bVersion = b.version.split('.').map(Number);
+      
+      for (let i = 0; i < 3; i++) {
+        if (aVersion[i] !== bVersion[i]) {
+          return bVersion[i] - aVersion[i]; // 降序
+        }
+      }
+      
+      return 0;
+    });
+    
+    const latestVersion = versions.length > 0 ? versions[0] : null;
+    
+    res.json({
+      success: true,
+      versions: versions.map(v => ({ version: v.version, file: v.file })),
+      latest: latestVersion ? { version: latestVersion.version, file: latestVersion.file } : null
+    });
+  } catch (error: any) {
+    console.error('获取CVM版本列表出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `获取CVM版本列表失败: ${error.message}`
+    });
+  }
+};
+
+/**
+ * 更新CVM的Docker Compose配置
+ * @param req Request - 包含appId参数和version参数
+ * @param res Response
+ */
+export const updateCvmComposeHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    const { version } = req.body;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    if (!version) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少版本参数'
+      });
+    }
+    
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 查找指定版本的Docker Compose文件
+    const fs = require('fs');
+    const path = require('path');
+    
+    const composePath = path.resolve(__dirname, `../../src/docker-compose/agent-cvm-v${version}.yml`);
+    
+    if (!fs.existsSync(composePath)) {
+      return res.status(404).json({
+        success: false,
+        message: `找不到版本 ${version} 的Docker Compose文件`
+      });
+    }
+    
+    // 创建PhalaCloud实例，使用找到的API key
+    const phalaCloud = new PhalaCloud({
+      apiKey: account.api_key
+    });
+    
+    try {
+      // 更新CVM的Docker Compose配置
+      const updateResult = await phalaCloud.updateCompose({
+        identifier: appId,
+        compose: composePath,
+        allowRestart: true
+      });
+      
+      res.json({
+        success: true,
+        message: `CVM ${appId} 的Docker Compose配置已更新为版本 ${version}`,
+        data: updateResult
+      });
+    } catch (error: any) {
+      console.error(`更新应用 ${appId} 的Docker Compose配置失败:`, error);
+      
+      // 处理特定错误
+      if (error.response) {
+        if (error.response.status === 404) {
+          return res.status(404).json({
+            success: false,
+            message: `未找到应用 ${appId}`
+          });
+        } else if (error.response.status === 409) {
+          return res.status(409).json({
+            success: false,
+            message: `应用 ${appId} 状态冲突，无法更新配置`
+          });
+        }
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `更新Docker Compose配置失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理更新Docker Compose配置请求时出错:', error);
     res.status(500).json({
       success: false,
       message: `服务器错误: ${error.message}`
