@@ -329,4 +329,314 @@ export const getAttestationHandler = async (req: Request, res: Response) => {
       message: `服务器错误: ${error.message}`
     });
   }
+};
+
+/**
+ * 获取CVM的系统状态信息
+ * @param req Request - 包含appId参数
+ * @param res Response
+ */
+export const getCvmStatsHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 创建PhalaCloud实例，使用找到的API key
+    const phalaCloud = new PhalaCloud({
+      apiKey: account.api_key
+    });
+    
+    try {
+      // 获取CVM系统状态信息
+      const statsData = await phalaCloud.getCvmStats(appId);
+      
+      res.json({
+        success: true,
+        data: statsData
+      });
+    } catch (error: any) {
+      console.error(`获取应用 ${appId} 的系统状态信息失败:`, error);
+      
+      // 如果错误是因为CVM未部署或离线
+      if (error.response && error.response.status === 404) {
+        return res.status(404).json({
+          success: false,
+          message: `无法找到应用 ${appId} 的系统状态信息，可能CVM未部署或已离线`
+        });
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `获取系统状态信息失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理系统状态信息请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
+};
+
+/**
+ * 获取CVM的组合信息
+ * @param req Request - 包含appId参数
+ * @param res Response
+ */
+export const getCvmCompositionHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 创建PhalaCloud实例，使用找到的API key
+    const phalaCloud = new PhalaCloud({
+      apiKey: account.api_key
+    });
+    
+    try {
+      // 获取CVM组合信息
+      const compositionData = await phalaCloud.getCvmComposition(appId);
+      
+      res.json({
+        success: true,
+        data: compositionData
+      });
+    } catch (error: any) {
+      console.error(`获取应用 ${appId} 的组合信息失败:`, error);
+      
+      // 如果错误是因为CVM未部署或离线
+      if (error.response && error.response.status === 404) {
+        return res.status(404).json({
+          success: false,
+          message: `无法找到应用 ${appId} 的组合信息，可能CVM未部署或已离线`
+        });
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `获取组合信息失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理组合信息请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
+};
+
+/**
+ * 启动CVM
+ * @param req Request - 包含appId参数
+ * @param res Response
+ */
+export const startCvmHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 创建PhalaCloud实例，使用找到的API key
+    const phalaCloud = new PhalaCloud({
+      apiKey: account.api_key
+    });
+    
+    try {
+      // 启动CVM
+      const startResult = await phalaCloud.startCvm(appId);
+      
+      // 更新数据库中的状态
+      await getQuery(`
+        UPDATE phala_accounts 
+        SET status = ? 
+        WHERE app_id = ?
+      `, [startResult.status, appId]);
+      
+      res.json({
+        success: true,
+        message: `CVM ${appId} 正在启动`,
+        data: startResult
+      });
+    } catch (error: any) {
+      console.error(`启动应用 ${appId} 失败:`, error);
+      
+      // 处理特定错误
+      if (error.response) {
+        if (error.response.status === 404) {
+          return res.status(404).json({
+            success: false,
+            message: `未找到应用 ${appId}`
+          });
+        } else if (error.response.status === 409) {
+          return res.status(409).json({
+            success: false,
+            message: `应用 ${appId} 已经在运行或处于不允许启动的状态`
+          });
+        }
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `启动CVM失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理启动CVM请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
+};
+
+/**
+ * 停止CVM
+ * @param req Request - 包含appId参数
+ * @param res Response
+ */
+export const stopCvmHandler = async (req: Request, res: Response) => {
+  try {
+    const { appId } = req.params;
+    
+    if (!appId) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少应用ID参数'
+      });
+    }
+    
+    // 从数据库中获取与appId关联的账户
+    const accounts = await getQuery(`
+      SELECT * FROM phala_accounts 
+      WHERE app_id = ? AND api_key IS NOT NULL
+      LIMIT 1
+    `, [appId]);
+    
+    if (accounts.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: `未找到与应用ID ${appId} 关联的账户或API key`
+      });
+    }
+    
+    const account = accounts[0];
+    
+    // 创建PhalaCloud实例，使用找到的API key
+    const phalaCloud = new PhalaCloud({
+      apiKey: account.api_key
+    });
+    
+    try {
+      // 停止CVM
+      const stopResult = await phalaCloud.stopCvm(appId);
+      
+      // 更新数据库中的状态
+      await getQuery(`
+        UPDATE phala_accounts 
+        SET status = ? 
+        WHERE app_id = ?
+      `, [stopResult.status, appId]);
+      
+      res.json({
+        success: true,
+        message: `CVM ${appId} 已停止`,
+        data: stopResult
+      });
+    } catch (error: any) {
+      console.error(`停止应用 ${appId} 失败:`, error);
+      
+      // 处理特定错误
+      if (error.response) {
+        if (error.response.status === 404) {
+          return res.status(404).json({
+            success: false,
+            message: `未找到应用 ${appId}`
+          });
+        } else if (error.response.status === 409) {
+          return res.status(409).json({
+            success: false,
+            message: `应用 ${appId} 已经停止或处于不允许停止的状态`
+          });
+        }
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: `停止CVM失败: ${error.message}`
+      });
+    }
+  } catch (error: any) {
+    console.error('处理停止CVM请求时出错:', error);
+    res.status(500).json({
+      success: false,
+      message: `服务器错误: ${error.message}`
+    });
+  }
 }; 
