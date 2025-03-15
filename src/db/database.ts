@@ -1,5 +1,7 @@
 import mysql from 'mysql2/promise';
 import { Pool, PoolConnection } from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
 
 let pool: Pool;
 
@@ -8,12 +10,12 @@ export const initializeDatabase = async () => {
     try {
         // 创建数据库连接池
         pool = mysql.createPool({
-            host: 'localhost',
-            user: 'anemone_user',
-            password: 'Anemone951753', // 使用您设置的密码
-            database: 'anemone_db',
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'anemone_user',
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME || 'anemone_db',
             waitForConnections: true,
-            connectionLimit: 10,
+            connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
             queueLimit: 0
         });
 
