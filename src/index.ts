@@ -3,38 +3,30 @@ dotenv.config();
 
 import express from 'express';
 import cors from 'cors';
-import sqlite3 from 'sqlite3';
 import { initializeDatabase } from './db/database';
+
 import { createAgentHandler, getAgentsHandler, getNftIdByRoleIdHandler, generateAgentAddressHandler } from './controllers/addressController';
 import { getSkillsHandler, addSkillHandler, getSkillByIdHandler, deleteSkillHandler } from './controllers/skillController';
-import { 
-  deployAgentCvmHandler, 
-  getAvailableCvmHandler, 
-  getCvmPoolStatusHandler, 
-  maintainCvmPoolHandler,
-  getAttestationHandler
+import {
+    deployAgentCvmHandler,
+    getAvailableCvmHandler,
+    getCvmPoolStatusHandler,
+    maintainCvmPoolHandler,
+    getAttestationHandler
 } from './controllers/cvmController';
 import {
-  updateApiKeyHandler,
-  listPhalaAccountsHandler,
-  createPhalaAccountHandler
+    updateApiKeyHandler,
+    listPhalaAccountsHandler,
+    createPhalaAccountHandler
 } from './controllers/adminController';
 
 // Initialize database
-initializeDatabase().catch(console.error);
-
-const app = express();
-
-// 初始化数据库连接并存储在app.locals中供路由使用
-const db = new sqlite3.Database('./database.sqlite', sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
-    if (err) {
-        console.error('Error opening database:', err);
-    } else {
-        console.log('Connected to SQLite database');
-    }
+initializeDatabase().catch(err => {
+    console.error('无法初始化数据库:', err);
+    process.exit(1); // 数据库连接失败时退出应用
 });
 
-app.locals.db = db;
+const app = express();
 
 // Add CORS middleware
 app.use(cors({
